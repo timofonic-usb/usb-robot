@@ -1,0 +1,401 @@
+#! @PERL@ -w
+# -*- perl -*-
+
+package main::sniffusb01;
+
+sub new 
+   {
+     my $proto = shift;
+     my $class = ref($proto) || $proto;
+
+     my $self  = {};
+
+     bless ($self, $class);
+     return $self;
+   }
+
+sub id_to_ep{
+  my $self = shift;
+  my $id = shift;
+
+  $id =~ /^0x/ or $id = "0x$id";
+
+  my $pipeno = $self->{pipe_ids}->{$id};
+  return $self->{pipes}->{$pipeno}->{ep};
+}
+sub
+id_to_direction
+  {
+    my $self = shift;
+    my $id = shift;
+    my $ep = $self->id_to_ep( $id );
+
+    return ( hex($ep) & 128 ? "IN" : "OUT" );
+  }
+
+sub get_config
+  {
+    my $self = shift;
+    
+    my %pipes;
+
+#  bConfigurationValue = 0x01
+    while( main::get_line() )
+      {
+       /bConfigurationValue = ([a-zA-Z0-9]+)/ && ($self->{config_number} = hex $1);
+       /Interface\[([0-9]+)\]/ && ($self->{interfaces}->{$1} = "used");
+
+       /Pipes\[([0-9]+)\] : PipeHandle[\s]*= ([a-zA-Z0-9]+)/ 
+	&& ($self->{pipe_ids}->{$2} = $1);
+       
+       if ( /Pipes\[([0-9]+)\] : EndpointAddress[\s]*= ([a-zA-Z0-9]+)/ )
+	 {
+	   %{$pipes{$1}} = ("ep", "$2" );
+	 }
+
+       /IRP_MN_START_DEVICE/ && last;
+      }
+
+    %{$self->{pipes}} = %pipes;
+
+    print STDERR "Configuration " . $self->{config_number} . "\n";
+    print STDERR "Interfaces " . join(" ", keys %{$self->{interfaces}}) . "\n";
+    print STDERR "Pipe IDs to EPs\n";
+
+    for my $id (keys %{$self->{pipe_ids}})
+      {
+	print STDERR "\t$id -> " . 
+	   $self->id_to_ep($id) . "\n";
+      }
+  }
+
+sub control
+  {
+    my $self = shift;
+
+    main::expect( "OK" ) or die;
+
+    main::do_command( "config " . $self->{config_number} ."\n" ) or die;
+
+    my @interfaces = (keys(%{$self->{interfaces}}));
+
+    main::do_command( "interface" . " " . $interfaces[0] . "\n" ) or die;
+
+    my $id;
+    my $ep;
+    my $dir;
+    my $length;
+
+    my $urb_dir;
+    my $do_transfer;
+
+    while( main::get_line() )
+      {
+	$do_transfer = 1;
+
+	do
+	  {
+	    if ( /<<<<</ )
+	      {
+		$urb_dir = "IN";
+		goto leave;
+	      }
+	    
+	    if ( />>>>>/ )
+	      {
+		$urb_dir = "OUT";
+		goto leave;
+	      }
+	  } while( main::get_line() );
+
+      leave:
+	main::get_line() while( !/-- URB_FUNCTION_BULK/ )
+	  ;
+
+
+	main::get_line();
+	
+
+	/PipeHandle[\s]*= ([a-zA-Z0-9]+)/ or die;
+
+	$id = $1;
+	$ep = $self->id_to_ep($id);
+	$dir = $self->id_to_direction($id);
+
+	$do_transfer = undef unless ($dir eq $urb_dir); 
+
+	main::get_line() while( !/TransferBufferLength = 0*([a-zA-Z0-9]+)/ );
+	
+	$length = hex $1;
+
+	main::get_line() while( !/TransferBufferMDL/ )
+	  ;
+
+	main::get_line();
+
+	my $data = $self->read_data();
+
+	next if ( !defined $do_transfer );
+
+	main::output("transfer type=bulk size=$length ep=$ep dir=$dir\n");
+	if ( $dir eq "OUT" )
+	  {
+	    main::write_binary( $length, $data );
+	  }
+	
+	if ( $dir eq "IN" )
+	  {
+	    main::expect_data($data,$length) or die;
+	  }
+
+	main::expect("OK") unless $main::session_type eq "dump";
+      }
+  }
+
+sub read_data
+  {
+    my $self = shift;
+    my $data;
+
+    while(/[\s]*([0-9a-zA-Z]+):[\s]*$/)
+      {
+	main::get_line();
+
+	/[0-9]+[\s]+[0-9]+(?:\.[0-9]+)[\s]+(.*)/ or die;
+	my $coded_data = $1;
+
+	$coded_data =~ y/a-zA-Z0-9//cd;
+
+	$data .= pack("H*",$coded_data);
+
+	main::get_line();
+
+      }
+
+    return $data;
+  }
+    
+package main;
+
+use IPC::Open2;
+use IO::Handle;
+
+$input_format = "sniffusb01";
+$session_type = "interactive"; # values: dump, interactive, non-interactive
+$slave_args = "";
+$slave_program = "usb-robot-slave";
+
+$slave_program = "./usb-robot-slave" if -x "./usb-robot-slave";
+
+$product = -1;
+$vendor = -1;
+
+
+%input_formats = 
+  ( "sniffusb01", main::sniffusb01 )
+;
+
+$input = $input_formats{$input_format}->new();
+
+parse_command_line();
+
+$input->get_config();
+
+local $SIG{PIPE} = sub { die "pipe broken communicating with slave\n"; };
+
+my $slave;
+
+if ( $session_type eq "interactive" )
+  {
+    $slave_args .= " vendor=$vendor" if $vendor ne "-1";
+    $slave_args .= " product=$product" if $product ne "-1";
+
+
+    $slave = open2( \*IN,\*OUT, "$slave_program $slave_args" ) 
+      or die;
+  }
+else
+  {
+    *IN = <>;
+    *OUT = *STDOUT;
+  }
+
+$input->control();
+
+
+sub get_line
+  {
+    $_ = (<> or die( "end of input\n" ));
+    #    print STDERR "read: $_";
+    return $_;
+  }
+
+
+sub output
+{
+  my $text = shift or return;
+  OUT->autoflush(1);
+
+  if ( $session_type eq "interactive" )
+    {
+      print OUT $text;
+    }
+  else
+    {
+      print OUT "> $text";
+    }
+}
+
+sub expect_data
+  {
+    my $expected = shift;
+    my $length = shift;
+
+    (main::expect("DATA") or die) unless $session_type eq "dump";
+    
+    if ( $session_type eq "interactive" )
+      {
+	my $received_data = main::read_binary($length);
+
+	print STDERR "Warning: got\n" . unpack_prettily($received_data) 
+	  . "\nnot\n" . unpack_prettily( $expected ) 
+	    . "\n" if ( $expected ne $received_data );
+	my $clean_data = $received_data;
+
+	$clean_data =~ y/[:print:]/\./c;
+
+	print STDERR "Got (len $length) \"${clean_data}\"\n"
+	  . (( $clean_data ne $received_data ) ? 
+	     unpack_prettily( $received_data ) ."\n" : ""); 
+	    
+      }
+    else
+      {
+	print "< " . unpack_prettily( $expected ) . "\n";
+      }
+    return 1;
+  }
+
+sub expect
+  {
+    my $expected = shift;
+
+    if ( $session_type eq "interactive" )
+      {
+	my $actual = (<IN> or die "Unable to read from input UNIX stream/pipe\n");
+	
+	return 1 if ( $actual =~ /^$expected/i )
+	  ;
+
+	print STDERR "Error: expected: \"${expected}\" got\n\t$actual" ;
+
+	return 0;
+	# command_abort();
+      }
+    else
+      {
+	print OUT "< $expected\n";
+	return 1;
+      }
+}    
+
+sub do_command 
+  {
+    my $command = shift;
+    output( $command );
+
+    if ( $session_type eq "interactive" )
+      {
+	my $response = <IN>;
+
+	die "panic: command syntax bad in\n\t${command}" if $response =~ /^USERERROR/;
+	
+	return 1 if $response =~ /^OK/;
+	return 0 if $response =~ /^ERROR/;
+
+	die "panic: bad response\n${response}to\n${command}";
+      }
+    else
+      {
+	if ( $session_type ne "dump" )
+	  {
+	    expect( "OK" );
+	  }
+      }
+
+    return 1;
+  }
+
+sub
+read_binary
+  {
+    my $length = shift;
+    my $data;
+
+    if ( $session_type eq "interactive" )
+      {    
+	read(*IN,$data,$length);
+      }
+    else
+      { $data = "[non-interactive read]"; }
+    return $data;
+  }
+
+sub
+write_binary
+  {
+    my $length = shift;
+    my $data = shift;
+    if ( $session_type eq "interactive" )
+      {    
+	syswrite OUT,$data,$length;
+      }
+    else
+      { 
+	print OUT "> " . unpack_prettily($data) . "\n";
+	print STDERR "data output length $length\n" 
+	  if $main::session_type eq "interactive";
+      }
+
+  }
+
+sub unpack_prettily
+  {
+    my $data = shift;
+
+    my $unpacked = unpack( "H*",$data);
+    $unpacked =~ s/([0-9a-zA-Z][0-9a-zA-Z])/$1 /g;
+    return $unpacked;
+  }
+
+
+sub parse_command_line
+  {
+    my @newargs;
+
+    for $arg (@ARGV)
+      {
+	if ( $arg =~ /^--([^=]*)=(.*)/ )
+	  {
+	    my ($var,$val) = ($1,$2);
+	    $var =~ y/a-zA-Z0-9_/_/c;
+	    
+	    eval "\$$var = \"$val\";" or die "Bad command line argument $_\n";
+	  }
+	else 
+	  {
+	    push @newargs, $arg;
+	  }
+	
+      }
+    @ARGV = @newargs;
+}
+
+
+
+sub command_abort
+{
+  output( "abort\n" );
+}
+
+
