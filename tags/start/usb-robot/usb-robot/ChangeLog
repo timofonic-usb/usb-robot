@@ -1,0 +1,5 @@
+2000-04-14  John Fremlin  <vii@penguinpowered.com>
+
+	* usb-robot-master.in (expect_data): added support for not
+	printing superfluous "DATA" on --session-type=dump.
+
