@@ -31,7 +31,11 @@ AC_CHECK_LIB(usb,usb_strerror)
 
 dnl Checks for header files
 
-AC_CHECK_HEADERS(usb.h readline/readline.h,,AC_MSG_ERROR(couldn't find libusb header))
+dnl Crucial ones
+AC_CHECK_HEADERS(usb.h,,AC_MSG_ERROR(couldn't find libusb header))
+
+dnl And optional
+AC_CHECK_HEADERS(readline/readline.h)
 
 dnl Checks for functions
 
