@@ -1,5 +1,12 @@
 2001-02-23  John Fremlin  <chief@bandits.org>
 
+	* control.c (ub_getline): Implement a getline so things work on
+	FreeBSD.
+
+	* README: say FreeBSD is supported
+
+	* Makefile.am: use rm -f instead of $(RM) which is not portable
+
 	* control.c (command_transfer): returning 0 from usb_control_msg
 	is not an error, thanks to Anthony Rumble
 	<arumble@users.sourceforge.net> for pointing this out.

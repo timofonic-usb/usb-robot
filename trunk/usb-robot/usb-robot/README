@@ -19,8 +19,8 @@ driver in a language like perl or Python. For a really bad example of
 how you can do that, it comes with a program (usb-robot-master) that
 translates traces of MS-Windows driver actions into usb-robot-slave
 commands, so you can get your device to do whatever MS-Windows did to
-it. You can get these traces from sniffusb version 0.1, which is
-linked to from the usb-robot homepage.
+it. You can get these traces from USB Snoopy sniffusb version 0.1,
+which is linked to from the usb-robot homepage.
 
 At the moment only control and bulk transfers are supported.
 
@@ -31,14 +31,15 @@ superuser (root).
 Starting up
 ===========
 
-Linux 2.4.2:
+Linux (kernel 2.4.2 is known to work)
 
 First load your USB kernel driver. See USB docs for more help.
 Don't forget to mount the /proc/bus/usb usbdevfs filesystem.
 
-*BSD:
 
-Does it work at all? Send mail!
+FreeBSD (4.2 RELEASE may work)
+
+Should work out of the box. Please send mail!
 
 
 Running the slave directly
