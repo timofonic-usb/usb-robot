@@ -1,3 +1,20 @@
+2001-02-23  John Fremlin  <chief@bandits.org>
+
+	* NEWS: Version 0.2.0
+
+	* INSTALL: detail requirements more explicitly
+
+	* Makefile.am: no need to add libusb explicitly
+
+	* configure.in: readline support and libusb detection
+
+	* control.c (ub_getline): readline support!
+
+	* output.c (usb_error): Now use libusb-0.1.3b usb_strerror.
+
+	* main.c (main,scan_bus,open_device): Change bus and device
+	identification printing to pathnames, for libusb-0.1.3b
+ 
 2000-07-15  John Fremlin  <vii@penguinpowered.com>
 
 	* AUTHORS: Added credit to Pavel Machek <pavel@suse.cz>

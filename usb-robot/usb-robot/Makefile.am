@@ -3,7 +3,6 @@
 bin_PROGRAMS = usb-robot-slave
 
 usb_robot_slave_SOURCES = output.c control.c main.c control.h libusb.h output.h
-usb_robot_slave_LDADD = -lusb
 
 EXTRA_DIST = bootstrap
 

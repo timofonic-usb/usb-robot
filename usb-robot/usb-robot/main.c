@@ -34,12 +34,14 @@ typedef struct
 option
 ;
 
+static
 const char* value_type_string_table[] = 
 {
   "","string","integer"
 }
 ;
 
+static
 void
 option_match( const option* opt, char* argument )
 {
@@ -68,12 +70,15 @@ option_match( const option* opt, char* argument )
   opt->action( pointer );
 }
 
+static
 void
 action_idvendor( void*integer )
 {
   int* value = (int*)integer;
   idVendor=*value;
 }
+
+static
 void
 action_idproduct( void*integer )
 {
@@ -81,16 +86,20 @@ action_idproduct( void*integer )
   idProduct=*value;
 }
 
+static
 void
 action_print_version(void*unused)
 {
   announce(PACKAGE " version " VERSION);
 }
 
+static
 void
 print_help_and_exit()
      ;
-void
+
+     static
+     void
 action_print_help_and_exit( void*unused )
 {
   print_help_and_exit();
@@ -116,6 +125,7 @@ option command_line_opts[]=
 }
 ;
 
+static
 void
 print_help_and_exit()
 {
@@ -134,7 +144,7 @@ print_help_and_exit()
 	       opt->explanation
 	       );
     }
-  exit(0);
+  exit(EXIT_SUCCESS);
 }
 
 
@@ -144,7 +154,10 @@ open_device( struct usb_device *device )
 {
   usb_dev_handle *handle;
 
-  message( "opening device %d on bus %d",(int)device->devicenum,(int)device->bus->busnum );
+  message( "opening device %s on bus %s",
+	   device->filename,
+	   device->bus->dirname
+	   );
 
   handle = usb_open(device);
   
@@ -157,7 +170,6 @@ open_device( struct usb_device *device )
   return handle;
 }
 
-
 int
 scan_bus( struct usb_bus* bus )
 {
@@ -165,7 +177,7 @@ scan_bus( struct usb_bus* bus )
   struct usb_device *device;
 
 
-  message( "scanning bus %d", (int)bus->busnum );
+  message( "scanning bus %s", bus->dirname );
 
   
   for( device = roottree;device;device=device->next)
@@ -174,27 +186,36 @@ scan_bus( struct usb_bus* bus )
 	   (idProduct ==-1 ? 1 : (device->descriptor.idProduct == idProduct ) ) )
 	{
 	  usb_dev_handle *device_handle;
-	  message( "found device %d on bus %d (idVendor 0x%x idProduct 0x%x)",
-		   (int)device->devicenum,
-		   (int)bus->busnum,device->descriptor.idVendor,
+	  message( "found device %s on bus %s (idVendor 0x%x idProduct 0x%x)",
+		   device->filename,
+		   device->bus->dirname,
+		   device->descriptor.idVendor,
 		   device->descriptor.idProduct );
 
-	  if ( device_handle = open_device(device) )
+	  if ( (device_handle = open_device(device)) )
 	    {
 	      if ( control_device( device_handle ) )
 		return 0;
 	    }
 
-	  message( "continuing scanning bus %d", (int)bus->busnum );
+	  message( "continuing to scan bus %s", bus->dirname );
 	}
       else
-	message( "device %d on bus %d does not match",
-		 (int)device->devicenum,(int)bus->busnum   );
+	message( "device %s on bus %s does not match",
+		 device->filename,
+		 device->bus->dirname);
     }
   
   return 1;
 }
 
+static void print_blurb(void)
+{
+  announce( "starting " PACKAGE " version " VERSION );
+  message( "  (c) 2000, 2001 John Fremlin");
+  message( "  Licensed under the GNU Public License version 2, see file COPYING.");
+  message( "  You didn't pay me for this program. You have no rights.");
+}
 
 int
 main(int argc, char** argv)
@@ -204,9 +225,9 @@ main(int argc, char** argv)
   option* opt;
   
   program_name = argv[0];
-  
-  announce( "starting " PACKAGE " version " VERSION );
-  
+
+  print_blurb();
+
   for(argument=(argv+1);*argument;argument++)
     {
       for(opt = command_line_opts;opt->string;opt++ )
@@ -214,8 +235,7 @@ main(int argc, char** argv)
 	  option_match(opt,*argument);
 	}
     }
-  
-  
+
   usb_init();
   usb_find_busses();
   usb_find_devices();
@@ -234,15 +254,15 @@ main(int argc, char** argv)
 
   for( bus = usb_busses; bus; bus = bus->next )
     {
-      message( "found bus %d", (int) bus->busnum );
+      message( "found bus %s", bus->dirname );
 
       if ( !scan_bus(bus) ) // found device
 	{
 	  announce( "exiting happily" );
-	  return 0;
+	  exit(EXIT_SUCCESS);
 	}
     }
   
   announce( "exiting after not really getting anywhere" );
-  return 1;
+  exit(EXIT_FAILURE);
 }
