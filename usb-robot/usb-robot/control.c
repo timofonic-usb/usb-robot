@@ -627,12 +627,31 @@ ub_getline(char**buffer,size_t*buffer_length, command_context* context)
       *buffer_length = length = strlen(*buffer);
       if (**buffer)
 	add_history(*buffer);
-    } else{
-      /* getline is a GNU extension */
-      length = getline(buffer, buffer_length, context->in);
-      
-      if ( length == -1 )
+    } else {
+	int c;
+	unsigned i;
+	length = 4; /* a low limit to catch bugs */
+    	*buffer = (char*)realloc(*buffer,length+1);
+    	if(!*buffer)
+     	 	panic("out of memory allocating IO buffer to read input line");
+
+	for(i = 0;(c = getc(context->in))!=EOF;i++){
+		if(i==length) {
+			length *= 2;
+			*buffer = (char*)realloc(*buffer,length+1);
+			
+			if(!*buffer)
+	    			panic("out of memory reading line");
+		}
+		if(c == '\n'){
+			(*buffer)[i] = 0;
+			*buffer_length = length;
+			goto got_line;
+		}
+		(*buffer)[i] = c;
+	}
 	panic("error reading next command from UNIX pipe/stream");
+got_line: continue;
     }
   }
 }

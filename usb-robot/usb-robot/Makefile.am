@@ -9,8 +9,8 @@ EXTRA_DIST = bootstrap
 bin_SCRIPTS = usb-robot-master
 
 maintainer-clean-local: 
-	$(RM) Makefile.in aclocal.m4 config.h.in stamp-h.in configure
+	rm -f Makefile.in aclocal.m4 config.h.in stamp-h.in configure
 
 distclean-local:
-	$(RM) usb-robot-master
+	rm -f usb-robot-master
 

@@ -2,9 +2,7 @@ Requirements
 ============
 
 	* libusb already installed (version 0.1.3b works)
-		http://libusb.sourceforge.net
-	* Various GNU C library functions (version 2.2.2 works)
-		ftp://ftp.gnu.org/pub/gnu/glibc
+		http://libusb.sourceforge.net	
 	* GNU C Compiler version 2 (version 2.95.2 works)
 		ftp://ftp.gnu.org/pub/gnu/gcc
 
@@ -13,10 +11,16 @@ The perl interpreter is necessary for usb-robot-master.
 	* Perl 5 (version 5.6.0 works)
 		http://www.perl.com/CPAN/src/
 
-The readline library is used if available, but is not necessary.
+The GNU readline library is used if available, but is not necessary.
 
 	* readline (version 4.1 works)
 		ftp://ftp.gnu.org/pub/gnu/readline
+
+The GNU C library is known to work. However, FreeBSD 4.2 RELEASE can
+also compile usb-robot.
+
+	* Various GNU C library functions (version 2.2.2 works)
+		ftp://ftp.gnu.org/pub/gnu/glibc
 
 Maintainers
 ===========
