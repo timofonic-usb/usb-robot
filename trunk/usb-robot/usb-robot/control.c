@@ -12,7 +12,8 @@
 
 typedef enum
 {
-  transfer_bulk
+  transfer_bulk,
+  transfer_ctrl
 }
 transfer_type;
 
@@ -26,18 +27,41 @@ direction;
 
 static const char* direction_to_string
 [] = 
-  {
-    0, // shouldn't happen
-    "from",
-    "to"
-  }
+{
+  0, // shouldn't happen
+  "from",
+  "to"
+}
 ;
 
+
+struct command_context_struct;
+
+typedef char* (*data_reader)(struct command_context_struct* context,size_t size);
+typedef void (*data_writer)(struct command_context_struct* context,size_t size,char* buffer);
+
 typedef struct
+{
+  char* name;
+  data_reader proc;
+}
+reader_wrapper;
+
+typedef struct
+{
+  char* name;
+  data_writer proc;
+}
+writer_wrapper;
+
+
+typedef struct command_context_struct
 {
   struct usb_dev_handle* device;
   FILE* in;
   FILE* out;
+  data_reader read;
+  data_writer write;
   long id;
 } command_context
 ;
@@ -47,33 +71,97 @@ typedef int (*command_action)( command_context* context, char*buffer );
 typedef struct 
 {
   char* name;
+  char* help;
   command_action action;
 }
 command;
 
 static
 char*
-read_binary( FILE* stream, size_t size )
+data_read_binary(command_context* context, size_t size )
 {
   char* buffer = malloc( size );
 
   assert( buffer );
 
-  if ( fread (buffer, 1, size, stream ) != size )
+  if ( fread (buffer, 1, size, context->in ) != size )
     panic( "error reading input from UNIX pipe/stream" );
 
   return buffer;
 }
 
 static
-void
-write_binary( FILE* stream, size_t size, char* buffer )
+char*
+data_read_hex(command_context* context, size_t size )
 {
-  if ( fwrite (buffer, 1, size, stream ) != size )
+  int c,i=0;
+  char* buffer = malloc( size );
+  
+  assert( buffer );
+
+ read_data:
+  for(i=0;i<size;i++)
+    {
+      if(fscanf(context->in,"%2x, ", &c)!=1){
+	fprintf( context->out, "USERERROR: bad input, re-enter all data\n");
+	goto read_data;
+      }
+      
+      buffer[i] = c;
+    }
+  return buffer;
+}
+
+static const reader_wrapper readers[] = 
+{
+  {"hex",data_read_hex
+  },
+  {
+    "binary",data_read_binary
+  },
+  {
+    0,0
+  }
+}
+;
+
+  
+
+static
+void
+data_write_binary(command_context* context, size_t size, char* buffer )
+{
+  if ( fwrite (buffer, 1, size, context->out ) != size )
     panic( "error writing output to UNIX pipe/stream" );
 
   fflush(0);
 }
+
+static
+void
+data_write_hex( command_context* context, size_t size, char* buffer )
+{
+  int i;
+  for (i=0; i<size; i++)
+    fprintf( context->out, "%02x, ", (int)(unsigned char)buffer[i]);
+  
+  fputc('\n',context->out);
+  
+  fflush(0);
+}
+
+static const writer_wrapper writers[] = 
+{
+  {"hex",data_write_hex
+  },
+  {
+    "binary",data_write_binary
+  },
+  {
+    0,0
+  }
+}
+;
 
 
 static
@@ -118,6 +206,42 @@ read_param( char const* name, char const* buffer )
   return pointer+1;
 }
 
+static
+int
+command_change_output( command_context* context, char*buffer )
+{
+  writer_wrapper const* rw;
+  for(rw=writers;rw->name;rw++)
+    {
+      if(!strcmp(buffer,rw->name))
+	{
+	  context->write = rw->proc;
+	  return 0;
+	}
+    }
+  fprintf( context->out, "USERERROR: bad value for output encoder\n" );
+  
+  return -2;
+}
+
+static
+int
+command_change_input( command_context* context, char*buffer )
+{
+  reader_wrapper const* rw;
+ 
+  for(rw=readers;rw->name;rw++)
+    {
+      if(!strcmp(buffer,rw->name))
+	{
+	  context->read = rw->proc;
+	  return 0;
+	}
+    }
+  fprintf( context->out, "USERERROR: bad value for input decoder\n" );
+  
+  return -2;
+}
 
 
 static
@@ -125,10 +249,11 @@ int
 command_set_config( command_context* context, char*buffer )
 {
   int confignumber;
+
   confignumber = read_integer( buffer );
-  if ( usb_set_configuration( context->device, confignumber) != USB_OK )
+  if ( (usb_set_configuration( context->device, confignumber)) != USB_OK )
     {
-      error( "problem setting config %d", confignumber );
+      usb_error( "problem setting config %d", confignumber );
       return -1;
     }
   return 0;
@@ -142,7 +267,7 @@ command_claim_interface(command_context* context, char*buffer )
   interface = read_integer( buffer );
   if ( usb_claim_interface( context->device, interface ) != USB_OK )
     {
-      error( "problem setting claiming interface %d", interface );
+      usb_error( "problem setting claiming interface %d", interface );
       return -1;
     }
   return 0;
@@ -218,13 +343,14 @@ param_transfer_type( char const* buffer, void*value )
     {
     case 'b': *ttype = transfer_bulk;
       break;
+    case 'c': *ttype = transfer_ctrl;
+      break;
     default:
       return -1;
     }
   
   return 0;
 }
-
 
 static
 int
@@ -233,13 +359,16 @@ command_transfer( command_context* context, char*buffer )
   long timeout = 10000;
   // if it hasn't happened after 10 seconds it probably won't ever
   
-  long size = -1;
+  long size = 0;
   long read;
   long ep = -1;
   direction dir = dir_out;
   char* data;
   int return_value = 0;
   transfer_type ttype = transfer_bulk;
+  int requesttype = ((dir == dir_in) ? USB_DIR_IN : USB_DIR_OUT)
+    | USB_TYPE_VENDOR | USB_RECIP_INTERFACE;
+  int request = 0, value = 0, index = 0;
   
   const parameter parameters[] = 
   {
@@ -259,19 +388,31 @@ command_transfer( command_context* context, char*buffer )
       "type", param_transfer_type, &ttype 
     },
     {
+      "requesttype", param_int, &requesttype 
+    },
+    {
+      "request", param_int, &request 
+    },
+    {
+      "value", param_int, &value 
+    },
+    {
+      "index", param_int, &index 
+    },
+    {
       0,0,0
     }
   }
   ;
   parameter const* param;
-  char const* value;
+  char const* val;
   
   for( param = parameters; param->name; param++ )
     {
-      value = read_param(param->name, buffer);
-      if ( value )
+      val = read_param(param->name, buffer);
+      if ( val )
 	{
-	  if( param->action( value, param->value ) )
+	  if( param->action( val, param->value ) )
 	    {
 	      fprintf( context->out, "USERERROR: bad value for parameter %s\n",
 		       param->name );
@@ -280,46 +421,58 @@ command_transfer( command_context* context, char*buffer )
 	}
     }
   
-  if ( ep == -1 )
-    {
-      fprintf( context->out, "USERERROR: no value for ep given\n" );
-      return -2;
-    }
-  if ( size == -1 )
-    {
-      fprintf( context->out, "USERERROR: no value for size given\n" );
-      return -2;
-    }
-  
-  
   switch(dir)
     {
     case dir_in: assert( data = malloc( size ) );break;
-      
-    case dir_out: data = read_binary( context->in, size );break;
-      
+    case dir_out: data = context->read( context, size );break;
     default: cant_get_here();
     }
 
-  message( "doing bulk transfer id %d %s ep 0x%x, size %d, timeout %d frames",
-	   (int)context->id,
-	   direction_to_string[dir],
-	   (int)ep,
-	   (int)size,
-	   (int)timeout );
-      
   switch(ttype)
     {
+    case transfer_ctrl:
+      message( "doing control message id %d %s device, size %d, timeout %d frames, %x:%x:%x:%x",
+	       (int)context->id,
+	       direction_to_string[dir],
+	       (int)size,
+	       (int)timeout, requesttype, request, value, index );
+
+      if (usb_control_msg(context->device, requesttype, request, value, index, data, size, timeout)) {
+	usb_error( "problem doing control msg");
+	return_value = -1;
+	break;
+      }
+      if (dir == dir_in) {
+	fprintf( context->out, "DATA: id=%d length=%d\n", (int)context->id,
+		 (int)size );
+	
+	context->write( context,size,data );
+      }
+      return_value = 0;
+      break;
+ 
     case transfer_bulk:
+      message( "doing bulk transfer id %d %s ep 0x%x, size %d, timeout %d frames",
+	       (int)context->id,
+	       direction_to_string[dir],
+	       (int)ep,
+	       (int)size,
+	       (int)timeout );
+
+      if ( ep == -1 )
+	{
+	  fprintf( context->out, "USERERROR: no value for ep given\n" );
+	  return -2;
+	}
       switch(dir)
 	{
 	case dir_in:
 	  if ( (read = usb_bulk_read(context->device, ep, data, size, timeout)) != size )
 	    {
 	      if ( read > 0 )
-		error( "problem doing read; only %d read from %d", (int)read, (int)size );
+		usb_error( "problem doing read; only %d read from %d", (int)read, (int)size );
 	      else
-		error( "problem doing read" );
+		usb_error( "problem doing read" );
 	      
 	      return_value = -1;
 	      break;
@@ -329,13 +482,13 @@ command_transfer( command_context* context, char*buffer )
 	      message( "read id %d successful", (int)context->id );
 	      fprintf( context->out, "DATA: id=%d length=%d\n", (int)context->id,
 		       (int)size );
-	      write_binary( context->out, size, data );
+	      context->write( context, size, data );
 	    }
 	  break;
 	case dir_out:
 	  if ( usb_bulk_write(context->device, ep, data, size, timeout) != USB_OK )
 	    {
-	      error( "problem doing write" );
+	      usb_error( "problem doing write" );
 	      return_value = -1;
 	    }
 	  else
@@ -353,6 +506,69 @@ command_transfer( command_context* context, char*buffer )
   return return_value;
 }
 
+static
+int
+command_help( command_context* context, char*buffer );
+
+static const command commands[] = 
+{ {
+  "transfer",
+  "make a USB transfer. Parameters:\n"
+  "\ttype=[\"bulk\",\"control\"]\n"
+  "\tep=[endpoint number]"
+  "\tdir=[\"in\",\"out\"]"
+  "\ttimeout=[frames]\n"
+  "\trequesttype=[int] -- only meaningful for control transfers\n"
+  "\trequest=[int] -- only meaningful for control transfers\n"
+  "\tvalue=[int] -- only meaningful for control transfers\n"
+  "\tindex=[int] -- only meaningful for control transfers"
+  ,
+  command_transfer,
+},
+  {
+    "config", "select a configuration, parameter [config number]", command_set_config
+  },
+  {
+    "interface", "claim an interface, parameter [interface number]",command_claim_interface
+  },
+  {
+    "input","change decoding of data input from console\n"
+    "\tPossible parameters: binary,hex\n",
+    command_change_input
+  },
+  {
+    "output","change encoding of data output to console\n"
+    "\tPossible parameters: binary,hex\n",
+    command_change_output
+  },
+  {
+    "abort", "try for another device with matching ids", command_abort
+  },
+  {
+    "help", "print command help", command_help
+  },
+  {
+    "quit", "leave the program", command_quit
+  },
+  {
+    0,0,0
+  }
+}
+;
+
+
+static
+int
+command_help( command_context* context, char*buffer ){
+  command const* c;
+  
+  for(c=commands;*c->help;c++)
+    fprintf(context->out,"%s -- %s\n",c->name,c->help);
+      
+  return 0;
+}
+
+
 
 static
 int
@@ -363,28 +579,6 @@ do_command( command_context* context )
   size_t buffer_length = 0;
   int return_value = 0;
   
-  const command commands[] = 
-  {
-    {
-      "transfer", command_transfer 
-    },
-    {
-      "config", command_set_config
-    },
-    {
-      "interface", command_claim_interface
-    },
-    {
-      "abort", command_abort
-    },
-    {
-      "quit", command_quit
-    },
-    {
-      0,0
-    }
-  }
-  ;
   command const* i;
   
   while(length <= 1)
@@ -401,7 +595,7 @@ do_command( command_context* context )
   for( i = commands; i->name; i++ )
     {
       if ( strncasecmp( i->name, buffer, 1 ) ) /*strlen( i->name ) ) )*/
-	   continue;
+	continue;
 
       switch( i->action( context, next_word_start(buffer ) ) )
 	{
@@ -440,7 +634,7 @@ control_device( struct usb_dev_handle* handle )
   int status;
   command_context context = 
   {
-    handle, stdin, stdout, 1
+    handle, stdin, stdout, data_read_binary, data_write_binary, 1
   }
   ;
   fprintf( context.out, "OK: id=0\n" );

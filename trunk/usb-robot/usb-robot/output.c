@@ -3,6 +3,8 @@
 
 #include "output.h"
 
+#include "libusb.h"
+
 void
 internal_error_func (const char* file, int line, const char *format,
 	 ...)
@@ -16,7 +18,6 @@ internal_error_func (const char* file, int line, const char *format,
   va_end (args);
 
   fprintf( stderr,"(%s,%d)\n",file,line );
-
 }
 
 void
@@ -75,5 +76,24 @@ error( const char *format, ...)
   vfprintf( stderr, format, args);
   va_end (args);
 
-  fprintf( stderr,"\n" );
+  fputs( "\n",stderr );
+}
+
+void
+usb_error( const char *format, ...)
+{     
+  va_list args;
+
+  fputs( "usb error: ", stderr );
+
+  va_start (args,format);
+  vfprintf( stderr, format, args);
+  va_end (args);
+
+#if 0
+  fprintf( stderr,": %s\n", usb_error_str);
+  /* not exported by libusb-0.1.0 apparently */
+#else
+  fputc('\n',stderr);
+#endif
 }

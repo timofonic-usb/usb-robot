@@ -10,7 +10,19 @@ extern void usb_find_busses();
 extern void usb_find_devices();
 extern int usb_set_configuration(struct usb_dev_handle *dev, int configuration);
 extern int usb_claim_interface(struct usb_dev_handle *dev, int interface);
+/*extern char* usb_error_str;*/
 
+#ifndef USB_OK
+#define USB_OK 0
+#endif
+
+#ifndef USB_DIR_IN
+#define USB_DIR_IN 0x80
+#endif
+
+#ifndef USB_DIR_OUT
+#define USB_DIR_OUT 0x00
+#endif
 
 #endif
 
