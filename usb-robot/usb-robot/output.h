@@ -23,6 +23,12 @@ error( const char *format, ...)
      __attribute__((format (printf, 1, 2)))
      ;
 
+extern     
+void
+usb_error( const char *format, ...)
+     __attribute__((format (printf, 1, 2)))
+     ;
+     
 extern void
 internal_error_func(const char* file, int line, const char *format,
 	 ...)

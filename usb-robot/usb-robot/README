@@ -54,12 +54,4 @@ This will search the USB buses for the specified device and open its
 /proc/bus/usb filehandle (via libusb). Now the command prompt will pop
 up.
 
-The commands are:
-
-config [configuration number]
-interface [interface]
-transfer type=b size=[bytes] ep=[endpoint number] dir=[in,out] timeout=[frames]
-abort -- go and try another device with same ids
-quit
-
-only the first letter of the command is significant.
+To see the commands you can type, type help and press return.
