@@ -1,0 +1,31 @@
+
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(main.c)
+AM_INIT_AUTOMAKE(usb-robot, 0.1.4)
+
+AM_CONFIG_HEADER(config.h)
+
+dnl Checks for programs
+
+AC_PROG_CC
+AC_MSG_WARN([this had better be the GNU C compiler])
+
+AC_PATH_PROG(PERL, perl)
+if test -z "$PERL"; then
+   AC_MSG_WARN([perl not found -- the master won't work])
+   PERL="/usr/bin/perl"
+fi
+
+dnl Checks for header files
+
+AC_CHECK_HEADERS(usb.h,,AC_MSG_ERROR(couldn't find libusb header))
+
+dnl Checks for functions
+
+AC_CHECK_FUNC(vprintf,,AC_MSG_ERROR(need vprintf! Use gcc))
+AC_CHECK_FUNC(strncasecmp,,AC_DEFINE(strncasecmp,strncmp,[case ignoring string comparison with specified length]))
+
+dnl All done
+
+AC_OUTPUT(Makefile usb-robot-master, [chmod +x usb-robot-master])

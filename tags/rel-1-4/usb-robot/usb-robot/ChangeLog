@@ -1,0 +1,21 @@
+2000-07-15  John Fremlin  <vii@penguinpowered.com>
+
+	* AUTHORS: Added credit to Pavel Machek <pavel@suse.cz>
+
+	* NEWS: Version 0.1.4
+
+	* control.c (command_help): Added function
+	(command_transfer): Added support for control transfers --
+	from patch by Pavel Machek <pavel@suse.cz>
+	(command_change_output): Added function
+	(data_write_hex): Added function
+	(command_change_input): Added function
+	(data_read_hex): Added function
+
+	* output.c (usb_error): Added function
+
+2000-04-14  John Fremlin  <vii@penguinpowered.com>
+
+	* usb-robot-master.in (expect_data): added support for not
+	printing superfluous "DATA" on --session-type=dump.
+
