@@ -1,0 +1,8 @@
+Authors of usb-robot.
+
+(C) 2000 John Fremlin <vii@penguinpowered.com>
+	Original author
+	Versions 0.1.1-4 maintainer
+
+(C) 2000 Pavel Machek <pavel@suse.cz>
+	Control transfers, hex input/output suggestion

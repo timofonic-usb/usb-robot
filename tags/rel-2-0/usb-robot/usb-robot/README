@@ -1,0 +1,77 @@
+This file describes the package and how to use it.
+You need a recent libusb. See INSTALL for details of requirements.
+See the file INSTALL for instructions on compiling and installing.
+See the file AUTHORS for who to mail about problems, suggestions, etc.
+
+
+usb-robot
+=========
+
+The latest version is always at http://usb-robot.sourceforge.net.
+
+The status of this release is beta. There are no known bugs, but
+virtually no testing has been carried out.
+
+This program is to communicate with generic USB devices using
+libusb. It can be used to send commands to the device directly from
+the console (usb-robot-slave), or as part of some rapidly prototyped
+driver in a language like perl or Python. For a really bad example of
+how you can do that, it comes with a program (usb-robot-master) that
+translates traces of MS-Windows driver actions into usb-robot-slave
+commands, so you can get your device to do whatever MS-Windows did to
+it. You can get these traces from sniffusb version 0.1, which is
+linked to from the usb-robot homepage.
+
+At the moment only control and bulk transfers are supported.
+
+Note that to communicate usefully with USB devices you need to be the
+superuser (root).
+
+
+Starting up
+===========
+
+Linux 2.4.2:
+
+First load your USB kernel driver. See USB docs for more help.
+Don't forget to mount the /proc/bus/usb usbdevfs filesystem.
+
+*BSD:
+
+Does it work at all? Send mail!
+
+
+Running the slave directly
+==========================
+
+# ./usb-robot-slave product=0x0099 vendor=0x05da
+
+This will search the USB buses for the specified device and open its
+/proc/bus/usb filehandle (via libusb). Now the command prompt will pop
+up.
+
+To see the commands you can use, type help and press return.
+
+
+Running the master
+==================
+
+The (unpolished) usb-robot-master perl script can be used to control
+the usb-robot-slave, using debuglogs produced from sniffusb in
+conjunction with dbgview.
+
+Perhaps perl-5.6.0 is required. I don't know.
+
+The following example acts on turnon.log then scansuite.log, using
+them to control a device with specified product and vendor id.
+
+# ./usb-robot-master --session-type=interactive --product=0x99 --vendor=0x5da\
+	 /mnt/d/temp/turnon.log /mnt/d/temp/scansuite.log
+
+A session type other than "interactive" will produce output to STDOUT
+describing what would be passed to the slave and what output from the
+slave would be expected.
+
+A session type of "dump" will produce a condensed (more readable) dump
+of the logs passed to the program.
+

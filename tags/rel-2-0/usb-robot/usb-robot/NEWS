@@ -1,0 +1,4 @@
+* Version 0.2.0: add readline support and update for new libusb 0.1.3b
+* Version 0.1.4: add support for reading and writing hex, control transfers.
+* Version 0.1.3: add support for --session-type=dump
+
