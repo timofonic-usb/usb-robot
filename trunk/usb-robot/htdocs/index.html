@@ -4,6 +4,8 @@
   <head>
     <title>usb-robot</title>
     <link rel=STYLESHEET href="default.css" type="text/css">
+    <meta name="keywords" 
+	  content="USB reverse engineering engineer Linux FreeBSD BSD usb-robot  perl userspace libusb rapid prototyping RAD">
   </head>
 
   <body>
@@ -17,21 +19,31 @@
     driver in a language like perl or Python. At the moment it only
     supports control and bulk transfers.
 
-    <P> It comes with a program (usb-robot-master) that translates
+    <P> Included is a program (usb-robot-master) which translates
     traces of MS-Windows driver actions from the output of <A
     href="http://www.jps.net/~koma/">USB Snoopy</a> sniffusb version
     0.1 into usb-robot-slave commands, so you can get your device to
-    do whatever MS-Windows told it to.
+    do whatever MS-Windows told it to, which is can be handy for
+    reverse engineering.
+
+    <P> It is primarily developed on Linux, but I got it to compile on
+    FreeBSD 4.2 RELEASE at version 0.2.1pre.
 
     <H2> download </h2>
+
+    <P> You probably want the <A
+    href="http://sourceforge.net/cvs/?group_id=7654">CVS sources</a>,
+    which should be pretty stable.
 
     <P> <A
     href="ftp://usb-robot.sourceforge.net/pub/usb-robot/">FTP
     directory</a>.
 
-    <P> This project is generously hosted at <A
-    href="http://sourceforge.net.">SourceForge</a>. Here's the obligatory
-    plug:
+    <P> This <A
+    href="http://sourceforge.net./projects/usb-robot/">project</a> is
+    generously hosted at <A
+    href="http://sourceforge.net.">SourceForge</a>. Here's the
+    obligatory plug:
       <IMG src="http://sourceforge.net/sflogo.php?group_id=7654&type=1"
 	   width="88" height="31" alt="SourceForge Logo">
 
@@ -40,7 +52,7 @@
 
 <!-- Created: Sun Jul 16 12:56:30 BST 2000 -->
 <!-- hhmts start -->
-<P class=hhmts>Last modified: Fri Feb 23 21:09:25 GMT 2001
+<P class=hhmts>Last modified: Fri Feb 23 21:44:28 GMT 2001
 <!-- hhmts end -->
   </body>
 </html>
