@@ -1,7 +1,10 @@
 This file describes the package and how to use it.
+
 You need a recent libusb. See INSTALL for details of requirements.
 See the file INSTALL for instructions on compiling and installing.
-See the file AUTHORS for who to mail about problems, suggestions, etc.
+See the file AUTHORS for who to mail about problems, suggestions,
+etc. Please don't submit patches to the sourceforge patch handling
+system, email them directly to me!
 
 
 usb-robot

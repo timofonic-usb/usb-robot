@@ -1,3 +1,8 @@
+2001-04-13  John Fremlin  <chief@bandits.org>
+
+	* control.c (command_transfer): Commit a patch to give a sensible
+	default value to requesttype. Don't know who the patch was from!
+
 2001-03-01  John Fremlin  <chief@bandits.org>
 
 	* configure.in: correctly mark readline.h as optional - problem
