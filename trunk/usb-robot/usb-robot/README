@@ -1,6 +1,15 @@
 
+The status of this release is beta. There are no known bugs, but not
+sufficient testing either.
+
 This program is to communicate with generic USB devices using
-libusb. At the moment it only supports bulk transfers.
+libusb. It can be used to send commands to the device directly from
+the console (usb-robot-slave), or as part of some rapidly prototyped
+driver in a language like perl or Python. For a really bad example of
+how you can do that, it comes with a program (usb-robot-master) that
+translates traces of MS-Windows driver actions into usb-robot-slave
+commands, so you can get your device to do whatever MS-Windows did to
+it. At the moment it only supports control and bulk transfers.
 
 See the file INSTALL for instructions on compiling and installing.
 See the file AUTHORS for who to mail about problems, suggestions, etc.
@@ -54,4 +63,4 @@ This will search the USB buses for the specified device and open its
 /proc/bus/usb filehandle (via libusb). Now the command prompt will pop
 up.
 
-To see the commands you can type, type help and press return.
+To see the commands you can use, type help and press return.
