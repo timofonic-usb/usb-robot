@@ -84,16 +84,11 @@ usb_error( const char *format, ...)
 {     
   va_list args;
 
-  fputs( "usb error: ", stderr );
+  fputs( "status: ", stderr );
 
   va_start (args,format);
   vfprintf( stderr, format, args);
   va_end (args);
 
-#if 0
-  fprintf( stderr,": %s\n", usb_error_str);
-  /* not exported by libusb-0.1.0 apparently */
-#else
-  fputc('\n',stderr);
-#endif
+  fprintf( stderr,"\nusb error: %s\n", usb_strerror());
 }

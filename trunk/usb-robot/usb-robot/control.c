@@ -6,9 +6,22 @@
 #include <string.h>
 #include <assert.h>
 
+#include "config.h"
+
+#if !defined(HAVE_READLINE) && defined(HAVE_LIBREADLINE) && defined(HAVE_READLINE_READLINE_H)
+#define HAVE_READLINE 1
+#else
+#define HAVE_READLINE 0
+#endif
+
+#if HAVE_READLINE
+#include <readline/readline.h>
+#include <readline/history.h>
+#endif
+
 #include "output.h"
 #include "libusb.h"
-#include "config.h"
+
 
 typedef enum
 {
@@ -597,29 +610,46 @@ command_help( command_context* context, char*buffer ){
   return 0;
 }
 
+static
+void
+ub_getline(char**buffer,size_t*buffer_length, command_context* context)
+{
+  ssize_t length = 0;
+
+  while(length<=0){
+    if(HAVE_READLINE && isatty(fileno(context->in))) {
+      rl_instream = context->in;
+      rl_outstream = context->out;
+      
+      if(*buffer)free(*buffer);
+      *buffer = readline("usb-robot> ");
+      if(!*buffer)
+	panic("error reading next command from readline");
+      *buffer_length = length = strlen(*buffer);
+      if (**buffer)
+	add_history(*buffer);
+    } else{
+      /* getline is a GNU extension */
+      length = getline(buffer, buffer_length, context->in);
+      
+      if ( length == -1 )
+	panic("error reading next command from UNIX pipe/stream");
+    }
+  }
+}
 
 
 static
 int
 do_command( command_context* context )
 {
-  ssize_t length = 0;
   char* buffer = 0;
   size_t buffer_length = 0;
   int return_value = 0;
   
   command const* i;
   
-  while(length <= 1)
-    {
-      /* GNU extension */
-      length = getline(&buffer, &buffer_length, context->in);
-
-      if ( length == -1 )
-	{
-	  panic("error reading next command from UNIX pipe/stream");
-	}
-    }
+  ub_getline(&buffer, &buffer_length, context);
 
   for( i = commands; i->name; i++ )
     {
@@ -662,12 +692,16 @@ control_device( struct usb_dev_handle* handle )
 {
   int status;
   command_context context = 
-  {
-    handle, stdin, stdout, data_read_binary, data_write_binary, 1
-  }
+    {
+      handle, stdin, stdout, data_read_binary, data_write_binary, 1
+    }
   ;
+
   fprintf( context.out, "OK: id=0\n" );
   fflush( context.out );
+
+  if(isatty(fileno(context.in)))
+    message("Type help and press return for a list of commands");
   
   while( !(status = do_command( &context ) ) )
     context.id++;
