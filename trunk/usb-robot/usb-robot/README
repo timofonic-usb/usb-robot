@@ -12,14 +12,14 @@ The latest version is always at http://usb-robot.sourceforge.net.
 The status of this release is beta. There are no known bugs, but
 virtually no testing has been carried out.
 
-This program is to communicate with generic USB devices using
+These tools are for communicating with generic USB devices using
 libusb. It can be used to send commands to the device directly from
 the console (usb-robot-slave), or as part of some rapidly prototyped
 driver in a language like perl or Python. For a really bad example of
 how you can do that, it comes with a program (usb-robot-master) that
 translates traces of MS-Windows driver actions into usb-robot-slave
-commands, so you can get your device to do whatever MS-Windows did to
-it. You can get these traces from USB Snoopy sniffusb version 0.1,
+commands, so you can get your device to do whatever MS-Windows asked
+it to. You can get these traces from USB Snoopy sniffusb version 0.1,
 which is linked to from the usb-robot homepage.
 
 At the moment only control and bulk transfers are supported.
