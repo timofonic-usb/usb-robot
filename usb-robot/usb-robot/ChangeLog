@@ -1,5 +1,9 @@
 2001-02-23  John Fremlin  <chief@bandits.org>
 
+	* control.c (command_transfer): returning 0 from usb_control_msg
+	is not an error, thanks to Anthony Rumble
+	<arumble@users.sourceforge.net> for pointing this out.
+
 	* NEWS: Version 0.2.0
 
 	* INSTALL: detail requirements more explicitly

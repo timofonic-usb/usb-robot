@@ -471,7 +471,7 @@ command_transfer( command_context* context, char*buffer )
 	       (int)size,
 	       (int)timeout, requesttype, request, value, index );
 
-      if (usb_control_msg(context->device, requesttype, request, value, index, data, size, timeout)) {
+      if (usb_control_msg(context->device, requesttype, request, value, index, data, size, timeout) < 0) {
 	usb_error( "problem doing control msg");
 	return_value = -1;
 	break;
@@ -598,10 +598,9 @@ command_help( command_context* context, char*buffer ){
   command const* c;
 
   fprintf(context->out,
-	  "The purpose of this program is to let you communicate\n"
-	  "directly with USB devices. The syntax is a command name\n"
-	  "possibly followed by parameters on the same line. The\n"
-	  "following commands are recognised:\n"
+	  "This program is for communicating directly with USB devices.\n"
+	  "The syntax is a command name possibly followed by parameters\n"
+	  "on the same line. The following commands are recognised:\n"
 	  );
   
   for(c=commands;c->help;c++)
