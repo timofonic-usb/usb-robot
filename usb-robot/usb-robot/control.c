@@ -96,13 +96,19 @@ data_read_hex(command_context* context, size_t size )
 {
   int c,i=0;
   char* buffer = malloc( size );
+
+  /* FIXME: there is no way to cancel the transfer, so user has fill
+     up the, say, 100000000 byte buffer somehow ;-) */
   
   assert( buffer );
 
+  fprintf( context->out,"Enter data in format FF FB 00 FC\n");
+  
+  fflush(0);
  read_data:
   for(i=0;i<size;i++)
     {
-      if(fscanf(context->in,"%2x, ", &c)!=1){
+      if(fscanf(context->in,"%2x", &c)!=1){
 	fprintf( context->out, "USERERROR: bad input, re-enter all data\n");
 	goto read_data;
       }
@@ -142,10 +148,20 @@ void
 data_write_hex( command_context* context, size_t size, char* buffer )
 {
   int i;
-  for (i=0; i<size; i++)
-    fprintf( context->out, "%02x, ", (int)(unsigned char)buffer[i]);
+  const int line_size=16;
+  int line_end;
   
-  fputc('\n',context->out);
+  for (i=0; i<size; )
+    {
+      line_end = i+line_size;
+      if(line_end>=size)
+	line_end=size;
+
+      fprintf( context->out, "%04x: ", i);
+      for(;i<line_end;i++)
+	fprintf( context->out, "%02x ", (int)(unsigned char)buffer[i]);
+      fputc('\n',context->out);
+    }
   
   fflush(0);
 }
@@ -211,15 +227,18 @@ int
 command_change_output( command_context* context, char*buffer )
 {
   writer_wrapper const* rw;
+  
   for(rw=writers;rw->name;rw++)
     {
-      if(!strcmp(buffer,rw->name))
+      if(*buffer == *rw->name)
 	{
 	  context->write = rw->proc;
+	  fprintf( context->out, "Output format changed to %s\n",rw->name);
 	  return 0;
 	}
     }
-  fprintf( context->out, "USERERROR: bad value for output encoder\n" );
+  fprintf( context->out, "USERERROR: bad value for output encoder: %s\n",
+	   buffer);
   
   return -2;
 }
@@ -229,16 +248,18 @@ int
 command_change_input( command_context* context, char*buffer )
 {
   reader_wrapper const* rw;
- 
+  
   for(rw=readers;rw->name;rw++)
     {
-      if(!strcmp(buffer,rw->name))
+      if(*buffer == *rw->name)
 	{
 	  context->read = rw->proc;
+	  fprintf( context->out, "Input format changed to %s\n",rw->name);
 	  return 0;
 	}
     }
-  fprintf( context->out, "USERERROR: bad value for input decoder\n" );
+  fprintf( context->out, "USERERROR: bad value for input decoder %s\n",
+	   buffer);
   
   return -2;
 }
@@ -515,13 +536,14 @@ static const command commands[] =
   "transfer",
   "make a USB transfer. Parameters:\n"
   "\ttype=[\"bulk\",\"control\"]\n"
-  "\tep=[endpoint number]"
-  "\tdir=[\"in\",\"out\"]"
+  "\tep=[endpoint number]\n"
+  "\tdir=[\"in\",\"out\"]\n"
   "\ttimeout=[frames]\n"
   "\trequesttype=[int] -- only meaningful for control transfers\n"
   "\trequest=[int] -- only meaningful for control transfers\n"
   "\tvalue=[int] -- only meaningful for control transfers\n"
-  "\tindex=[int] -- only meaningful for control transfers"
+  "\tindex=[int] -- only meaningful for control transfers\n"
+  "\tExample: transfer type=bulk size=6 ep=0x01 dir=OUT\n"
   ,
   command_transfer,
 },
@@ -532,13 +554,13 @@ static const command commands[] =
     "interface", "claim an interface, parameter [interface number]",command_claim_interface
   },
   {
-    "input","change decoding of data input from console\n"
-    "\tPossible parameters: binary,hex\n",
+    "decoding","change decoding of data input from console\n"
+    "\tPossible parameters: binary,hex",
     command_change_input
   },
   {
-    "output","change encoding of data output to console\n"
-    "\tPossible parameters: binary,hex\n",
+    "encoding","change encoding of data output to console\n"
+    "\tPossible parameters: binary,hex",
     command_change_output
   },
   {
@@ -561,8 +583,15 @@ static
 int
 command_help( command_context* context, char*buffer ){
   command const* c;
+
+  fprintf(context->out,
+	  "The purpose of this program is to let you communicate\n"
+	  "directly with USB devices. The syntax is a command name\n"
+	  "possibly followed by parameters on the same line. The\n"
+	  "following commands are recognised:\n"
+	  );
   
-  for(c=commands;*c->help;c++)
+  for(c=commands;c->help;c++)
     fprintf(context->out,"%s -- %s\n",c->name,c->help);
       
   return 0;
