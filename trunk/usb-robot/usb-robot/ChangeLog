@@ -1,3 +1,8 @@
+2001-03-01  John Fremlin  <chief@bandits.org>
+
+	* configure.in: correctly mark readline.h as optional - problem
+	spotted by Glenn Ramsey <glennr@es.co.nz>.
+
 2001-02-23  John Fremlin  <chief@bandits.org>
 
 	* control.c (ub_getline): Implement a getline so things work on

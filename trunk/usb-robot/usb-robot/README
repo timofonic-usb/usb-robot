@@ -13,8 +13,8 @@ The status of this release is beta. There are no known bugs, but
 virtually no testing has been carried out.
 
 These tools are for communicating with generic USB devices using
-libusb. It can be used to send commands to the device directly from
-the console (usb-robot-slave), or as part of some rapidly prototyped
+libusb. It can be used to send commands to a device directly from the
+console (usb-robot-slave), or as part of some rapidly prototyped
 driver in a language like perl or Python. For a really bad example of
 how you can do that, it comes with a program (usb-robot-master) that
 translates traces of MS-Windows driver actions into usb-robot-slave
