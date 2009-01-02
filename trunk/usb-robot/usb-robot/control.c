@@ -197,15 +197,15 @@ static
 char*
 next_word_start( char* buffer )
 {
-  char*pointer=buffer;
-  
-  while(!isspace(*pointer))
-    pointer++;
-	
-  while (isspace(*pointer))
-    pointer++;
-  
-  return pointer;
+    char* pointer = buffer;
+
+    while (!isspace(*pointer) && *pointer != '\0')
+        pointer++;
+
+    while (isspace(*pointer) && *pointer != '\0')
+        pointer++;
+
+    return pointer;
 }
 
 
