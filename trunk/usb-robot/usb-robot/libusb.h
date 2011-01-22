@@ -23,4 +23,3 @@ extern int usb_claim_interface(struct usb_dev_handle *dev, int interface);
 #endif
 
 #endif
-
