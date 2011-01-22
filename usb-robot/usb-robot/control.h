@@ -3,9 +3,7 @@
 
 struct usb_dev_handle;
 
-extern
-int // return 0 on success
-control_device( struct usb_dev_handle* handle )
-     ;
+// returns 0 on success
+extern int control_device(struct usb_dev_handle *handle);
 
 #endif
