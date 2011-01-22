@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <assert.h>
+#include <usb.h>
+#define USB_OK 0
 
 #include "config.h"
 
@@ -20,7 +22,6 @@
 #endif
 
 #include "output.h"
-#include "libusb.h"
 #include "control.h"
 
 typedef enum {
@@ -340,7 +341,7 @@ int command_transfer(command_context * context, char *buffer)
         char *data;
         int return_value = 0;
         transfer_type ttype = transfer_bulk;
-        int requesttype = ((dir == dir_in) ? USB_DIR_IN : USB_DIR_OUT)
+        int requesttype = ((dir == dir_in) ? USB_ENDPOINT_IN : USB_ENDPOINT_OUT)
                 | USB_TYPE_VENDOR | USB_RECIP_INTERFACE;
         int request = 0, value = 0, index = 0;
 

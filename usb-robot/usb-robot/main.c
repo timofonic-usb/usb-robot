@@ -1,8 +1,7 @@
 #define _GNU_SOURCE
 #include <string.h>
 #include <stdlib.h>
-
-#include "libusb.h"
+#include <usb.h>
 #include "output.h"
 #include "control.h"
 
