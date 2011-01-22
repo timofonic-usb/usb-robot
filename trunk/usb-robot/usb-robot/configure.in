@@ -1,12 +1,11 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
 
-dnl Process this file with autoconf to produce a configure script.
-
+AC_PREREQ([2.65])
 AC_INIT(main.c)
 AM_INIT_AUTOMAKE(usb-robot, 0.2.1pre)
-
-AM_CONFIG_HEADER(config.h)
-
-dnl Checks for programs
+AC_CONFIG_SRCDIR([main.c])
+AC_CONFIG_HEADERS([config.h])
 
 AC_PROG_CC
 AC_MSG_WARN([this had better be the GNU C compiler])
@@ -17,12 +16,10 @@ if test "x$PERL" = "x"; then
    PERL="/usr/bin/perl"
 fi
 
-dnl Check for libraries
-
-AC_CHECK_LIB(ncurses,tgetent,,
-AC_CHECK_LIB(termcap,tgetent,,
-AC_CHECK_LIB(curses,tgetent,,
-	AC_MSG_WARN([could not find a curses library - readline might not work]))))
+AC_CHECK_LIB(ncurses,tgetent)
+AC_CHECK_LIB(termcap,tgetent)
+AC_CHECK_LIB(curses,tgetent)
+#	AC_MSG_WARN([could not find a curses library - readline might not work]))))
 
 AC_CHECK_LIB(readline,readline)
 AC_CHECK_LIB(history,add_history)
@@ -36,12 +33,22 @@ AC_CHECK_HEADERS(usb.h,,AC_MSG_ERROR(couldn't find libusb header))
 
 dnl And optional
 AC_CHECK_HEADERS(readline/readline.h)
+# Checks for libraries.
 
-dnl Checks for functions
-
+# Checks for header files.
+AC_CHECK_HEADERS([stdlib.h string.h])
+#functions 
 AC_CHECK_FUNC(vprintf,,AC_MSG_ERROR(need vprintf! Use gcc))
 AC_CHECK_FUNC(strncasecmp,,AC_DEFINE(strncasecmp,strncmp,[case ignoring string comparison with specified length]))
+# Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
 
-dnl All done
+# Checks for library functions.
+AC_FUNC_ERROR_AT_LINE
+AC_FUNC_MALLOC
+AC_FUNC_REALLOC
+AC_CHECK_FUNCS([strncasecmp strstr strtol])
 
+#AC_CONFIG_FILES([Makefile])
 AC_OUTPUT(Makefile usb-robot-master, [chmod +x usb-robot-master])
