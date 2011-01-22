@@ -16,11 +16,11 @@ static int idProduct=-1;
 
 typedef void (*action_t)(void*value);
 
-typedef struct 
+typedef struct
 {
   char const* string;
   char const* explanation;
-  enum 
+  enum
   {
     none,
     string,
@@ -35,7 +35,7 @@ option
 ;
 
 static
-const char* value_type_string_table[] = 
+const char* value_type_string_table[] =
 {
   "","string","integer"
 }
@@ -51,7 +51,7 @@ option_match( const option* opt, char* argument )
   if ( strncasecmp( opt->string, argument, strlen(opt->string) ) )
     return;
 
-  
+
   switch( opt->value_type )
     {
     case none:
@@ -103,12 +103,12 @@ print_help_and_exit()
 action_print_help_and_exit( void*unused )
 {
   print_help_and_exit();
-}     
+}
 
 option command_line_opts[]=
 {
   {
-    "vendor=","set the USB idVendor to look for",integer,action_idvendor 
+    "vendor=","set the USB idVendor to look for",integer,action_idvendor
   },
   {
     "product=","set the USB idProduct to look for",integer,action_idproduct
@@ -130,7 +130,7 @@ void
 print_help_and_exit()
 {
   option* opt;
-  
+
   message( "The purpose of this program is to provide a way to\n"
 	   "talk to USB devices from userspace without having to\n"
 	   "write and compile a C program specifically for the job\n\n"
@@ -160,7 +160,7 @@ open_device( struct usb_device *device )
 	   );
 
   handle = usb_open(device);
-  
+
   if ( !handle )
     {
       message( "open failed" );
@@ -179,11 +179,11 @@ scan_bus( struct usb_bus* bus )
 
   message( "scanning bus %s", bus->dirname );
 
-  
+
   for( device = roottree;device;device=device->next)
     {
-      if ( (idVendor  ==-1 ? 1 : (device->descriptor.idVendor == idVendor ) ) &&
-	   (idProduct ==-1 ? 1 : (device->descriptor.idProduct == idProduct ) ) )
+      if (((idVendor  == -1) ? 1 : (device->descriptor.idVendor == idVendor )) &&
+	   ((idProduct == -1) ? 1 : (device->descriptor.idProduct == idProduct )))
 	{
 	  usb_dev_handle *device_handle;
 	  message( "found device %s on bus %s (idVendor 0x%x idProduct 0x%x)",
@@ -205,7 +205,7 @@ scan_bus( struct usb_bus* bus )
 		 device->filename,
 		 device->bus->dirname);
     }
-  
+
   return 1;
 }
 
@@ -223,7 +223,7 @@ main(int argc, char** argv)
   char**argument;
   struct usb_bus* bus;
   option* opt;
-  
+
   program_name = argv[0];
 
   print_blurb();
@@ -241,12 +241,12 @@ main(int argc, char** argv)
   usb_find_devices();
 
   message( "doing bus scan for:" );
-  
+
   if ( idVendor != -1 )
     message( "\tidVendor 0x%x", idVendor );
   else
     message( "\tany idVendor" );
-  
+
   if ( idProduct != -1 )
     message( "\tidProduct 0x%x", idProduct  );
   else
@@ -262,7 +262,7 @@ main(int argc, char** argv)
 	  exit(EXIT_SUCCESS);
 	}
     }
-  
+
   announce( "exiting after not really getting anywhere" );
   exit(EXIT_FAILURE);
 }
