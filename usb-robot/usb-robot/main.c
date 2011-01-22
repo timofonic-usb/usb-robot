@@ -55,13 +55,13 @@ option_match( const option* opt, char* argument )
   switch( opt->value_type )
     {
     case none:
-      pointer=0;
+      pointer=NULL;
       break;
     case string:
       pointer = (void*)(argument+strlen(opt->string) );
       break;
     case integer:
-      temp = strtol( argument+strlen(opt->string), 0 , 0);
+      temp = strtol( argument+strlen(opt->string), NULL , 0);
       pointer= (void*)&temp;
       break;
     default:
@@ -105,7 +105,7 @@ action_print_help_and_exit( void*unused )
   print_help_and_exit();
 }
 
-option command_line_opts[]=
+static option command_line_opts[]=
 {
   {
     "vendor=","set the USB idVendor to look for",integer,action_idvendor
@@ -119,15 +119,11 @@ option command_line_opts[]=
   {
     "--version","print package and version",none,action_print_version
   },
-  {
-    0,0,0,0
-  }
+  {}
 }
 ;
 
-static
-void
-print_help_and_exit()
+static void print_help_and_exit(void)
 {
   option* opt;
 
@@ -149,7 +145,7 @@ print_help_and_exit()
 
 
 
-usb_dev_handle *
+static usb_dev_handle *
 open_device( struct usb_device *device )
 {
   usb_dev_handle *handle;
@@ -164,13 +160,13 @@ open_device( struct usb_device *device )
   if ( !handle )
     {
       message( "open failed" );
-      return 0;
+      return NULL;
     }
 
   return handle;
 }
 
-int
+static int
 scan_bus( struct usb_bus* bus )
 {
   struct usb_device* roottree = bus->devices;

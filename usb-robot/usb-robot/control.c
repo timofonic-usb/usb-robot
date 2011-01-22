@@ -21,6 +21,7 @@
 
 #include "output.h"
 #include "libusb.h"
+#include "control.h"
 
 
 typedef enum
@@ -30,7 +31,7 @@ typedef enum
 }
 transfer_type;
 
-typedef enum 
+typedef enum
 {
   dir_undefined=0,
   dir_in,
@@ -39,9 +40,9 @@ typedef enum
 direction;
 
 static const char* direction_to_string
-[] = 
+[] =
 {
-  0, // shouldn't happen
+  NULL, // shouldn't happen
   "from",
   "to"
 }
@@ -112,12 +113,12 @@ data_read_hex(command_context* context, size_t size )
 
   /* FIXME: there is no way to cancel the transfer, so user has fill
      up the, say, 100000000 byte buffer somehow ;-) */
-  
+
   assert( buffer );
 
   fprintf( context->out,"Enter data in format FF FB 00 FC\n");
-  
-  fflush(0);
+
+  fflush(NULL);
  read_data:
   for(i=0;i<size;i++)
     {
@@ -125,26 +126,24 @@ data_read_hex(command_context* context, size_t size )
 	fprintf( context->out, "USERERROR: bad input, re-enter all data\n");
 	goto read_data;
       }
-      
+
       buffer[i] = c;
     }
   return buffer;
 }
 
-static const reader_wrapper readers[] = 
+static const reader_wrapper readers[] =
 {
   {"hex",data_read_hex
   },
   {
     "binary",data_read_binary
   },
-  {
-    0,0
-  }
+  {}
 }
 ;
 
-  
+
 
 static
 void
@@ -153,7 +152,7 @@ data_write_binary(command_context* context, size_t size, char* buffer )
   if ( fwrite (buffer, 1, size, context->out ) != size )
     panic( "error writing output to UNIX pipe/stream" );
 
-  fflush(0);
+  fflush(NULL);
 }
 
 static
@@ -163,7 +162,7 @@ data_write_hex( command_context* context, size_t size, char* buffer )
   int i;
   const int line_size=16;
   int line_end;
-  
+
   for (i=0; i<size; )
     {
       line_end = i+line_size;
@@ -175,20 +174,18 @@ data_write_hex( command_context* context, size_t size, char* buffer )
 	fprintf( context->out, "%02x ", (int)(unsigned char)buffer[i]);
       fputc('\n',context->out);
     }
-  
-  fflush(0);
+
+  fflush(NULL);
 }
 
-static const writer_wrapper writers[] = 
+static const writer_wrapper writers[] =
 {
   {"hex",data_write_hex
   },
   {
     "binary",data_write_binary
   },
-  {
-    0,0
-  }
+  {}
 }
 ;
 
@@ -208,12 +205,12 @@ next_word_start( char* buffer )
     return pointer;
 }
 
-
+//XXX ph make inline?
 static
 long
 read_integer( char const* buffer )
 {
-  return strtol(buffer,0,0);
+  return strtol(buffer,NULL,0);
 }
 
 static
@@ -222,16 +219,16 @@ read_param( char const* name, char const* buffer )
 {
   char const* pointer=buffer;
 
-  do 
+  do
     {
       pointer = strstr (pointer,name);
       if ( !pointer )
-	return 0;
+	return NULL;
 
       pointer += strlen(name);
     }
   while( *pointer != '=' );
-  
+
   return pointer+1;
 }
 
@@ -433,9 +430,7 @@ command_transfer( command_context* context, char*buffer )
     {
       "index", param_int, &index 
     },
-    {
-      0,0,0
-    }
+    {}
   }
   ;
   parameter const* param;
@@ -585,9 +580,7 @@ static const command commands[] =
   {
     "quit", "leave the program", command_quit
   },
-  {
-    0,0,0
-  }
+  {}
 }
 ;
 
@@ -661,7 +654,7 @@ static
 int
 do_command( command_context* context )
 {
-  char* buffer = 0;
+  char* buffer = NULL;
   size_t buffer_length = 0;
   int return_value = 0;
   
@@ -696,7 +689,7 @@ do_command( command_context* context )
   return_value = 0;
   
  cleanup:
-  fflush(0);
+  fflush(NULL);
 
   if ( buffer_length )
     free( buffer );
